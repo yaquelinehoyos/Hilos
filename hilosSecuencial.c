@@ -70,13 +70,13 @@ int main (int argc, char *argv[]){
                 int numbersFile2[elemntsFile2];
                 saveNumbers(file1, numbersFile1, elemntsFile1);
                 saveNumbers(file2, numbersFile2, elemntsFile2);
-                for(int i = 0; i < elemntsFile1; i++){
+                /*for(int i = 0; i < elemntsFile1; i++){
                     printf("posicion: %d valor: %d \n", i, numbersFile1[i]);
                 }
                 printf("\n");
                 for(int i = 0; i < elemntsFile2; i++){
                     printf("posicion: %d valor: %d \n", i, numbersFile2[i]);
-                }
+                }*/
                 fclose(file1);
                 fclose(file2);
                 int result = multiplyVectors(numbersFile1, numbersFile2, elemntsFile1);
