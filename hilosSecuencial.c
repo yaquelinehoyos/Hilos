@@ -62,8 +62,6 @@ int main (int argc, char *argv[]){
                 int *numbersFile2 = malloc(elemntsFile2*sizeof(int));
                 saveNumbers(file1, numbersFile1, elemntsFile1);
                 saveNumbers(file2, numbersFile2, elemntsFile2);
-<<<<<<< HEAD
-=======
                 for(int i = 0; i < elemntsFile1; i++){
                     printf("posicion: %d valor: %d \n", i, numbersFile1[i]);
                 }
@@ -71,7 +69,6 @@ int main (int argc, char *argv[]){
                 for(int i = 0; i < elemntsFile2; i++){
                     printf("posicion: %d valor: %d \n", i, numbersFile2[i]);
                 }
->>>>>>> f162a289edb8e66d72926aaf61b530649fa57a39
                 fclose(file1);
                 fclose(file2);
                 clock_t begin = clock();
