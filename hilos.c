@@ -8,24 +8,14 @@
 extern int errno;
 
 void saveNumbers(FILE *file, int *vector, int elements){
-    char c;
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
     int counter = 0;
-    char number[10];
-    number[0] = '\0'; 
-    char copy[1];
 
-    while ((c = fgetc(file)) != EOF){
-        copy[0] = c;
-        if(c == '\n'){
-            vector[counter] = atoi(number);
-            counter++;
-            strcpy(number, "");
-        }else{
-            strcat(number, copy);
-        }
-        if(counter == elements - 1){
-            vector[counter] = atoi(number);
-        }
+    while ((read = getline(&line, &len, file)) != -1) {
+        vector[counter] = atoi(line);
+        counter++;
     }
 }
 
@@ -40,37 +30,29 @@ int countElementsVector(FILE *file){
     return counter;
 }
 
-/*int multiplyVectors(int *vector1, int *vector2, int elements){
-    int result = 0;
-    for (int i = 0; i < elements; i++){
-        result += vector1[i] * vector2[i];
-    }
-    return result;
-}*/
-
-void divTask(int threads, int elements, int *vector){
+void divTask(int threads, int elements, double *vector){
     switch(threads){
         case 2:
             if(elements % 2 == 0){
-                vector[0] = elements / 2;
-                vector[1] = elements / 2;
+                vector[0] = (double)(elements / 2);
+                vector[1] = (double)(elements / 2);
             }else{
-                vector[0] = floor(elements/2);
-                vector[1] = elements - vector[0];
+                vector[0] = floor((double)(elements/2));
+                vector[1] = (double)(elements - vector[0]);
             }
             break;
         case 4:
             if(elements % 4 == 0){
                 for(int i = 0; i < threads; i++){
-                    vector[i] = elements/4;
+                    vector[i] = (double)(elements/4);
                 }
             }else{
-                int auxi1 = floor(elements / 2);
-                int auxi2 = elements - auxi1;
-                vector[0] = floor(auxi1 / 2);
-                vector[1] = auxi1 - vector[0];
-                vector[2] = floor(auxi2 / 2);
-                vector[3] = auxi2 - vector[2];
+                double auxi1 = floor((double)elements / 2);
+                double auxi2 = (double)(elements - auxi1);
+                vector[0] = floor((double)(auxi1 / 2));
+                vector[1] = (double)(auxi1 - vector[0]);
+                vector[2] = floor((double)(auxi2 / 2));
+                vector[3] = (double)(auxi2 - vector[2]);
             }
             break;
         case 8:
@@ -79,20 +61,20 @@ void divTask(int threads, int elements, int *vector){
                     vector[i] = elements/8;
                 }
             }else{
-                int auxi1 = floor(elements / 2);
-                int auxi2 = elements - auxi1;
-                int auxi3 = floor(auxi1 / 2);
-                int auxi4 = auxi1 - auxi3;
-                int auxi5 = floor(auxi2 / 2);
-                int auxi6 = auxi2 - auxi5;
-                vector[0] = floor(auxi3 / 2);
-                vector[1] = auxi3 - vector[0];
-                vector[2] = floor(auxi4 / 2);
-                vector[3] = auxi4 - vector[2];
-                vector[4] = floor(auxi5 / 2);
-                vector[5] = auxi5 - vector[4];
-                vector[6] = floor(auxi6 / 2);
-                vector[7] = auxi6 - vector[6];
+                double auxi1 = floor((double)(elements / 2));
+                double auxi2 = (double)(elements - auxi1);
+                double auxi3 = floor((double)(auxi1 / 2));
+                double auxi4 = (double)(auxi1 - auxi3);
+                double auxi5 = floor((double)(auxi2 / 2));
+                double auxi6 = (double)(auxi2 - auxi5);
+                vector[0] = floor((double)(auxi3 / 2));
+                vector[1] = (double)(auxi3 - vector[0]);
+                vector[2] = floor((double)(auxi4 / 2));
+                vector[3] = (double)(auxi4 - vector[2]);
+                vector[4] = floor((double)(auxi5 / 2));
+                vector[5] = (double)(auxi5 - vector[4]);
+                vector[6] = floor((double)(auxi6 / 2));
+                vector[7] = (double)(auxi6 - vector[6]);
             }
             break;
         case 16:
@@ -101,40 +83,53 @@ void divTask(int threads, int elements, int *vector){
                     vector[i] = elements/16;
                 }
             }else{
-                int auxi1 = floor(elements / 2);
-                int auxi2 = elements - auxi1;
-                int auxi3 = floor(auxi1 / 2);
-                int auxi4 = auxi1 - auxi3;
-                int auxi5 = floor(auxi2 / 2);
-                int auxi6 = auxi2 - auxi5;
-                int auxi7 = floor(auxi3 / 2);
-                int auxi8 = auxi3 - auxi7;
-                int auxi9 = floor(auxi4 / 2);
-                int auxi10 = auxi4 - auxi9;
-                int auxi11 = floor(auxi5 / 2);
-                int auxi12 = auxi5- auxi11;
-                int auxi13 = floor(auxi6 / 2);
-                int auxi14 = auxi6 - auxi13;
-                vector[0] = floor(auxi7 / 2);
-                vector[1] = auxi7 - vector[0];
-                vector[2] = floor(auxi8 / 2);
-                vector[3] = auxi8 - vector[2];
-                vector[4] = floor(auxi9 / 2);
-                vector[5] = auxi9 - vector[4];
-                vector[6] = floor(auxi10 / 2);
-                vector[7] = auxi10 - vector[6];
-                vector[8] = floor(auxi11 / 2);
-                vector[9] = auxi11 - vector[8];
-                vector[10] = floor(auxi12 / 2);
-                vector[11] = auxi12 - vector[10];
-                vector[12] = floor(auxi13 / 2);
-                vector[13] = auxi13 - vector[12];
-                vector[14] = floor(auxi14 / 2);
-                vector[15] = auxi14 - vector[14];
+                double auxi1 = floor((double)(elements / 2));
+                double auxi2 = (double)(elements - auxi1);
+                double auxi3 = floor((double)(auxi1 / 2));
+                double auxi4 = (double)(auxi1 - auxi3);
+                double auxi5 = floor((double)(auxi2 / 2));
+                double auxi6 = (double)(auxi2 - auxi5);
+                double auxi7 = floor((double)(auxi3 / 2));
+                double auxi8 = (double)(auxi3 - auxi7);
+                double auxi9 = floor((double)(auxi4 / 2));
+                double auxi10 = (double)(auxi4 - auxi9);
+                double auxi11 = floor((double)(auxi5 / 2));
+                double auxi12 = (double)(auxi5- auxi11);
+                double auxi13 = floor((double)(auxi6 / 2));
+                double auxi14 = (double)(auxi6 - auxi13);
+                vector[0] = floor((double)(auxi7 / 2));
+                vector[1] = (double)(auxi7 - vector[0]);
+                vector[2] = floor((double)(auxi8 / 2));
+                vector[3] = (double)(auxi8 - vector[2]);
+                vector[4] = floor((double)(auxi9 / 2));
+                vector[5] = (double)(auxi9 - vector[4]);
+                vector[6] = floor((double)(auxi10 / 2));
+                vector[7] = (double)(auxi10 - vector[6]);
+                vector[8] = floor((double)(auxi11 / 2));
+                vector[9] = (double)(auxi11 - vector[8]);
+                vector[10] = floor((double)(auxi12 / 2));
+                vector[11] = (double)(auxi12 - vector[10]);
+                vector[12] = floor((double)(auxi13 / 2));
+                vector[13] = (double)(auxi13 - vector[12]);
+                vector[14] = floor((double)(auxi14 / 2));
+                vector[15] = (double)(auxi14 - vector[14]);
             }
             break;
     }
 }
+
+/*void multiplicar(partición, tamavectores, vector1, vector2, contador o multi){
+    for (int i = 0, i < vec [int - 1], i++){
+        mul [i] = vector1 [i] * vector2 [i];
+        contador++;
+    }
+}
+
+void resultado (multi, numero elementos, resultado){
+    for (int i = 0, i < elementos, i++){
+        int = int + multi[i];
+    }
+}*/
 
 int main (int argc, char *argv[]){
     if(argc != 4){
@@ -170,8 +165,8 @@ int main (int argc, char *argv[]){
                         int numbersFile2[elemntsFile2];
                         saveNumbers(file1, numbersFile1, elemntsFile1);
                         saveNumbers(file2, numbersFile2, elemntsFile2);
-                        int tasks[aux];
-                        divTask(aux, numbersFile1, tasks);
+                        double tasks[aux];
+                        /*divTask(aux, elemntsFile1, tasks);
                         switch(aux){
                             case 2:
                                 pthread_t h1;
@@ -183,7 +178,7 @@ int main (int argc, char *argv[]){
                                 break;
                             case 16:
                                 break;
-                        }
+                        }*/
                     }
                     fclose(file1);
                     fclose(file2);

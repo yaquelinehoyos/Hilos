@@ -6,29 +6,19 @@
 extern int errno;
 
 void saveNumbers(FILE *file, int *vector, int elements){
-    char c;
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
     int counter = 0;
-    char number[10];
-    number[0] = '\0'; 
-    char copy[1];
 
-    while ((c = fgetc(file)) != EOF){
-        copy[0] = c;
-        if(c == '\n'){
-            vector[counter] = atoi(number);
-            counter++;
-            strcpy(number, "");
-        }else{
-            strcat(number, copy);
-        }
-        if(counter == elements - 1){
-            vector[counter] = atoi(number);
-        }
+    while ((read = getline(&line, &len, file)) != -1) {
+        vector[counter] = atoi(line);
+        counter++;
     }
 }
 
 int countElementsVector(FILE *file){
-    int counter = 1;
+    int counter = 0;
     char c;
     while ((c = fgetc(file)) != EOF)
     {
@@ -70,13 +60,13 @@ int main (int argc, char *argv[]){
                 int numbersFile2[elemntsFile2];
                 saveNumbers(file1, numbersFile1, elemntsFile1);
                 saveNumbers(file2, numbersFile2, elemntsFile2);
-                /*for(int i = 0; i < elemntsFile1; i++){
+                for(int i = 0; i < elemntsFile1; i++){
                     printf("posicion: %d valor: %d \n", i, numbersFile1[i]);
                 }
                 printf("\n");
                 for(int i = 0; i < elemntsFile2; i++){
                     printf("posicion: %d valor: %d \n", i, numbersFile2[i]);
-                }*/
+                }
                 fclose(file1);
                 fclose(file2);
                 int result = multiplyVectors(numbersFile1, numbersFile2, elemntsFile1);
