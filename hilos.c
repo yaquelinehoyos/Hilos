@@ -7,10 +7,21 @@
 #include <pthread.h>
 
 extern int errno;
+int result = 0;
+int indice = 0;
+int *p1;
+int *p2;
 
-void saveNumbers(FILE *file, int *vector, int elements){
-    char * line = NULL;
-    size_t len = 0;
+struct vectorStruct{  
+    int *vectorFile1;
+    int *vectorFile2;
+    int *vectorTasks;
+    int idHilo;
+};
+
+void saveNumbers(FILE *file, int *vector, int elements){    //Este método se encarga de leer
+    char * line = NULL;                                     //los regitros línea por línea
+    size_t len = 0;                                         //y almacenarlos en un vector
     ssize_t read;
     int counter = 0;
 
@@ -20,8 +31,8 @@ void saveNumbers(FILE *file, int *vector, int elements){
     }
 }
 
-int countElementsVector(FILE *file){
-    int counter = 0;
+int countElementsVector(FILE *file){    //Este método se encarga de contar
+    int counter = 0;                    //los elementos de los vectores
     char c;
     while ((c = fgetc(file)) != EOF)
     {
@@ -31,9 +42,9 @@ int countElementsVector(FILE *file){
     return counter;
 }
 
-void divTask(int threads, int elements, int *vector){
-    switch(threads){
-        case 2:
+void divTask(int threads, int elements, int *vector){   //Este método es el encargado
+    switch(threads){                                    //de la divión de tareas
+        case 2:                                         //para cada uno de los hilos
             if(elements % 2 == 0){
                 vector[0] = elements / 2;
                 vector[1] = elements / 2;
@@ -119,32 +130,46 @@ void divTask(int threads, int elements, int *vector){
     }
 }
 
+void *threadFunction(void *args){                                   //Este método es el encargado de
+    struct vectorStruct *actualArgs = args;                         //realizar las multiplicaciones
+    int numberTasks = actualArgs->vectorTasks[actualArgs->idHilo];  //y sumas de los vectores
+    for(int i = 0; i < numberTasks; i++){                           //para hallar el producto punto
+        p1 = &actualArgs->vectorFile1[indice];
+        p2 = &actualArgs->vectorFile2[indice];
+        result += (*p1) * (*p2);
+        p1++;
+        p2++;
+        indice++;
+    }
+    return NULL;
+}
+
 int main (int argc, char *argv[]){
-    if(argc != 4){
+    if(argc != 4){      //Verificamos que no hayan más o menos argumentos de los necesarios
         printf("Señor usuario, no ingreso los argumentos requeridos \n");
         printf("Error en el llamado: %s \n", strerror(errno));
         exit(errno);
     }else{
         FILE *file1, *file2;
         int numeroHilos = atoi(argv[3]);
-        if(numeroHilos != 2 && numeroHilos != 4 && numeroHilos != 8 && numeroHilos != 16){
-            printf("Error en el llamado: %s \n", strerror(errno));
+        if(numeroHilos != 2 && numeroHilos != 4 && numeroHilos != 8 && numeroHilos != 16){  //verificamos que el número de
+            printf("Error en el llamado: %s \n", strerror(errno));                          //hilos sea el permitido
             exit(errno);
         }else{
-            if( ((file1 = fopen(argv[1], "r") ) == NULL) || ((file2 = fopen(argv[2], "r") ) == NULL)){
-            printf("Error en el llamado: %s \n", strerror(errno));
+            if( ((file1 = fopen(argv[1], "r") ) == NULL) || ((file2 = fopen(argv[2], "r") ) == NULL)){  //verificamos que los
+            printf("Error en el llamado: %s \n", strerror(errno));                                      //archivos existan
             exit(errno);
             }else{
                 int elementsFile1 = countElementsVector(file1);
                 rewind(file1);
                 int elementsFile2 = countElementsVector(file2);
                 rewind(file2);
-                if(elementsFile1 != elementsFile2){
+                if(elementsFile1 != elementsFile2){     //Verificamos que los dos vectores tengan el mismo número de elementos
                     printf("El numero de elementos de los vectores no es el mismo \n");
                     printf("Error en el llamado: %s \n", strerror(errno));
                     exit(errno);
                 }else{
-                    if(numeroHilos > elementsFile1){
+                    if(numeroHilos > elementsFile1){    //Verificamos que el número de elementos no supere el número de hilos
                         printf("El numero de hilos supera el numero de elementos del vector \n");
                         printf("Error en el llamado: %s \n", strerror(errno));
                         exit(errno);
@@ -153,61 +178,29 @@ int main (int argc, char *argv[]){
                         int *numbersFile2 = malloc(elementsFile2*sizeof(int));
                         saveNumbers(file1, numbersFile1, elementsFile1);
                         saveNumbers(file2, numbersFile2, elementsFile2);
+                        struct vectorStruct *args = malloc(sizeof *args); 
+                        args->vectorFile1 = numbersFile1;
+                        args->vectorFile2 = numbersFile2;
                         int tasks[numeroHilos];
                         int length = sizeof(tasks)/sizeof(tasks[0]);
                         divTask(numeroHilos, elementsFile1, tasks);
-                        for(int i = 0; i < length; i++){
-                            printf("posición: %d valor: %d \n", i, tasks[i]);
+                        args->vectorTasks = &tasks;
+                        pthread_t threads[numeroHilos];
+                        clock_t begin = clock();    //Tomamos el tiempo de inicio de la multiplicación
+                        for(int i = 0; i < numeroHilos; i++){
+                            args->idHilo = i;
+                            pthread_create(&threads[i], NULL, threadFunction, args);
+                            pthread_join(threads[i], NULL);
                         }
-                        clock_t begin = clock();
-                        /*switch(aux){
-                            case 2:
-                                pthread_t h1;
-                                pthread_t h2;
-                                break;
-                            case 4:
-                                pthread_t h1;
-                                pthread_t h2;
-                                pthread_t h3;
-                                pthread_t h4;
-                                break;
-                            case 8:
-                                pthread_t h1;
-                                pthread_t h2;
-                                pthread_t h3;
-                                pthread_t h4;
-                                pthread_t h5;
-                                pthread_t h6;
-                                pthread_t h7;
-                                pthread_t h8;
-                                break;
-                            case 16:
-                                pthread_t h1;
-                                pthread_t h2;
-                                pthread_t h3;
-                                pthread_t h4;
-                                pthread_t h5;
-                                pthread_t h6;
-                                pthread_t h7;
-                                pthread_t h8;
-                                pthread_t h9;
-                                pthread_t h10;
-                                pthread_t h11;
-                                pthread_t h12;
-                                pthread_t h13;
-                                pthread_t h14;
-                                pthread_t h15;
-                                pthread_t h16;
-                                break;
-                        }*/
-                        clock_t end = clock();
+                        clock_t end = clock();      //Tomamos el tiempo de finalización de la multiplicación
+                        free(args); //Liberamos memoria
                         double time = 0.0;
-                        time += (double)(end - begin) / CLOCKS_PER_SEC;
-                        //printf("Resultado: %d \n", result);
+                        time += (double)(end - begin) / CLOCKS_PER_SEC; //Hallamos el tiempo de ejecución de la multiplicación
+                        printf("Resultado: %d \n", result);
                         printf("El tiempo de ejecución de la multiplicación es: %f segundos \n", time);
                     }
-                    fclose(file1);
-                    fclose(file2);
+                    fclose(file1);  //Cerramos el archivo
+                    fclose(file2);  //Cerramos el archivo
                 }
             }
         }
