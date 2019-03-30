@@ -7,16 +7,15 @@
 #include <pthread.h>
 
 extern int errno;
-int result = 0;
-int indice = 0;
-int *p1;
-int *p2;
 
 struct vectorStruct{  
     int *vectorFile1;
     int *vectorFile2;
-    int *vectorTasks;
+    int numberTasks;
     int idHilo;
+    int *resultado;
+    int *p1;
+    int *p2;
 };
 
 void saveNumbers(FILE *file, int *vector, int elements){    //Este método se encarga de leer
@@ -24,7 +23,6 @@ void saveNumbers(FILE *file, int *vector, int elements){    //Este método se en
     size_t len = 0;                                         //y almacenarlos en un vector
     ssize_t read;
     int counter = 0;
-
     while ((read = getline(&line, &len, file)) != -1) {
         vector[counter] = atoi(line);
         counter++;
@@ -130,46 +128,49 @@ void divTask(int threads, int elements, int *vector){   //Este método es el enc
     }
 }
 
-void *threadFunction(void *args){                                   //Este método es el encargado de
-    struct vectorStruct *actualArgs = args;                         //realizar las multiplicaciones
-    int numberTasks = actualArgs->vectorTasks[actualArgs->idHilo];  //y sumas de los vectores
-    for(int i = 0; i < numberTasks; i++){                           //para hallar el producto punto
-        p1 = &actualArgs->vectorFile1[indice];
-        p2 = &actualArgs->vectorFile2[indice];
-        result += (*p1) * (*p2);
-        p1++;
-        p2++;
-        indice++;
+void putPointer(int *tareas, int numHilos, int *pointers){
+    pointers[0] = 0;
+    for(int i = 1; i < numHilos; i++){
+        pointers[i] = pointers[i - 1] + tareas[i - 1];
+    }
+}
+
+void *threadFunction(void *args){                                       
+    struct vectorStruct *actualArgs = args;                                                                 
+    for(int i = 0; i < actualArgs->numberTasks; i++){                               
+        actualArgs->resultado[actualArgs->idHilo] += (*actualArgs->p1) * (*actualArgs->p2);
+        actualArgs->p1++;
+        actualArgs->p2++;
     }
     return NULL;
 }
 
 int main (int argc, char *argv[]){
-    if(argc != 4){      //Verificamos que no hayan más o menos argumentos de los necesarios
+    if(argc != 4){      
         printf("Señor usuario, no ingreso los argumentos requeridos \n");
         printf("Error en el llamado: %s \n", strerror(errno));
         exit(errno);
     }else{
         FILE *file1, *file2;
         int numeroHilos = atoi(argv[3]);
-        if(numeroHilos != 2 && numeroHilos != 4 && numeroHilos != 8 && numeroHilos != 16){  //verificamos que el número de
-            printf("Error en el llamado: %s \n", strerror(errno));                          //hilos sea el permitido
+        if(numeroHilos != 2 && numeroHilos != 4 && numeroHilos != 8 && numeroHilos != 16){  
+            printf("Error en el llamado: %s \n", strerror(errno));                     
             exit(errno);
         }else{
-            if( ((file1 = fopen(argv[1], "r") ) == NULL) || ((file2 = fopen(argv[2], "r") ) == NULL)){  //verificamos que los
-            printf("Error en el llamado: %s \n", strerror(errno));                                      //archivos existan
+            if( ((file1 = fopen(argv[1], "r") ) == NULL) || ((file2 = fopen(argv[2], "r") ) == NULL)){  
+            printf("Error en el llamado: %s \n", strerror(errno));                                     
             exit(errno);
             }else{
                 int elementsFile1 = countElementsVector(file1);
                 rewind(file1);
                 int elementsFile2 = countElementsVector(file2);
                 rewind(file2);
-                if(elementsFile1 != elementsFile2){     //Verificamos que los dos vectores tengan el mismo número de elementos
+                if(elementsFile1 != elementsFile2){     
                     printf("El numero de elementos de los vectores no es el mismo \n");
                     printf("Error en el llamado: %s \n", strerror(errno));
                     exit(errno);
                 }else{
-                    if(numeroHilos > elementsFile1){    //Verificamos que el número de elementos no supere el número de hilos
+                    if(numeroHilos > elementsFile1){    
                         printf("El numero de hilos supera el numero de elementos del vector \n");
                         printf("Error en el llamado: %s \n", strerror(errno));
                         exit(errno);
@@ -178,29 +179,44 @@ int main (int argc, char *argv[]){
                         int *numbersFile2 = malloc(elementsFile2*sizeof(int));
                         saveNumbers(file1, numbersFile1, elementsFile1);
                         saveNumbers(file2, numbersFile2, elementsFile2);
-                        struct vectorStruct *args = malloc(sizeof *args); 
-                        args->vectorFile1 = numbersFile1;
-                        args->vectorFile2 = numbersFile2;
+                        struct vectorStruct args[numeroHilos]; 
                         int tasks[numeroHilos];
-                        int length = sizeof(tasks)/sizeof(tasks[0]);
                         divTask(numeroHilos, elementsFile1, tasks);
-                        args->vectorTasks = &tasks;
-                        pthread_t threads[numeroHilos];
-                        clock_t begin = clock();    //Tomamos el tiempo de inicio de la multiplicación
+                        int punteros[numeroHilos];
+                        putPointer(tasks, numeroHilos, punteros);
+                        int *resultadoPorHilo = malloc(numeroHilos*sizeof(int));
                         for(int i = 0; i < numeroHilos; i++){
-                            args->idHilo = i;
-                            pthread_create(&threads[i], NULL, threadFunction, args);
+                            args[i].vectorFile1 = numbersFile1;
+                            args[i].vectorFile2 = numbersFile2;
+                            args[i].numberTasks = tasks[i];
+                            args[i].idHilo = i;
+                            args[i].resultado = resultadoPorHilo;
+                            args[i].p1 = &args[i].vectorFile1[punteros[i]];
+                            args[i].p2 = &args[i].vectorFile2[punteros[i]];
+                        }
+                        pthread_t threads[numeroHilos];
+                        clock_t begin = clock();    
+                        for(int i = 0; i < numeroHilos; i++){
+                            pthread_create(&threads[i], NULL, threadFunction, &args[i]);  
+                        }
+                        for(int i = 0; i < numeroHilos; i++){
                             pthread_join(threads[i], NULL);
                         }
-                        clock_t end = clock();      //Tomamos el tiempo de finalización de la multiplicación
-                        free(args); //Liberamos memoria
+                        int resultadoFinal = 0;
+                        for(int i = 0; i < numeroHilos; i++){
+                            resultadoFinal = resultadoFinal + args[i].resultado[i];
+                        }
+                        clock_t end = clock();   
+                        free(args->vectorFile1);
+                        free(args->vectorFile2);
+                        free(resultadoPorHilo);
                         double time = 0.0;
-                        time += (double)(end - begin) / CLOCKS_PER_SEC; //Hallamos el tiempo de ejecución de la multiplicación
-                        printf("Resultado: %d \n", result);
+                        time += (double)(end - begin) / CLOCKS_PER_SEC; 
+                        printf("Resultado: %d \n", resultadoFinal);
                         printf("El tiempo de ejecución de la multiplicación es: %f segundos \n", time);
                     }
-                    fclose(file1);  //Cerramos el archivo
-                    fclose(file2);  //Cerramos el archivo
+                    fclose(file1);  
+                    fclose(file2);  
                 }
             }
         }
