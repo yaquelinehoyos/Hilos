@@ -7,13 +7,14 @@
 #include <pthread.h>
 
 extern int errno;
+int dotProduct = 0;
+pthread_mutex_t flag;
 
 struct vectorStruct{  
     int *vectorFile1;
     int *vectorFile2;
     int numberTasks;
     int idHilo;
-    int *resultado;
     int *p1;
     int *p2;
 };
@@ -137,16 +138,21 @@ void putPointer(int *tareas, int numHilos, int *pointers){  //Este método se en
 }
 
 void *threadFunction(void *args){         //Método para la multiplicación                              
-    struct vectorStruct *actualArgs = args;                                                                 
+    struct vectorStruct *actualArgs = args;      
+    int product = 0;                                                           
     for(int i = 0; i < actualArgs->numberTasks; i++){                               
-        actualArgs->resultado[actualArgs->idHilo] += (*actualArgs->p1) * (*actualArgs->p2);
+        product += (*actualArgs->p1) * (*actualArgs->p2);
         actualArgs->p1++;
         actualArgs->p2++;
     }
+    pthread_mutex_lock(&flag);
+        dotProduct += product;
+    pthread_mutex_unlock(&flag);
     return NULL;
 }
 
 int main (int argc, char *argv[]){
+    pthread_mutex_init(&flag, NULL);
     if(argc != 4){      //Verificamos que no hayan más o menos argumentos de los necesarios
         printf("Señor usuario, no ingreso los argumentos requeridos \n");
         printf("Error en el llamado: %s \n", strerror(errno));
@@ -186,13 +192,11 @@ int main (int argc, char *argv[]){
                         divTask(numeroHilos, elementsFile1, tasks);
                         int punteros[numeroHilos];
                         putPointer(tasks, numeroHilos, punteros);
-                        int *resultadoPorHilo = malloc(numeroHilos*sizeof(int));
                         for(int i = 0; i < numeroHilos; i++){   //Asignamos valores a cada struct de cada hilo
                             args[i].vectorFile1 = numbersFile1;
                             args[i].vectorFile2 = numbersFile2;
                             args[i].numberTasks = tasks[i];
                             args[i].idHilo = i;
-                            args[i].resultado = resultadoPorHilo;
                             args[i].p1 = &args[i].vectorFile1[punteros[i]];
                             args[i].p2 = &args[i].vectorFile2[punteros[i]];
                         }
@@ -204,17 +208,12 @@ int main (int argc, char *argv[]){
                         for(int i = 0; i < numeroHilos; i++){
                             pthread_join(threads[i], NULL);
                         }
-                        int resultadoFinal = 0;
-                        for(int i = 0; i < numeroHilos; i++){
-                            resultadoFinal = resultadoFinal + args[i].resultado[i];
-                        }
-                        clock_t end = clock();   
+                        clock_t end = clock();  
                         free(args->vectorFile1);
                         free(args->vectorFile2);
-                        free(resultadoPorHilo);
                         double time = 0.0;
                         time += (double)(end - begin) / CLOCKS_PER_SEC; 
-                        printf("Resultado: %d \n", resultadoFinal);
+                        printf("Resultado: %d \n", dotProduct);
                         printf("El tiempo de ejecución de la multiplicación es: %f segundos \n", time);
                     }
                     fclose(file1);  
